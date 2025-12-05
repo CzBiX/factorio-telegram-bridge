@@ -290,5 +290,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 Built with:
 - [teloxide](https://github.com/teloxide/teloxide) - Telegram bot framework
-- [rcon-rs](https://github.com/panicbit/rcon-rs) - RCON client library
+- [rcon](https://github.com/panicbit/rcon-rs) - RCON client library
 - [linemux](https://github.com/jmagnuson/linemux) - Asynchronous log file monitoring
