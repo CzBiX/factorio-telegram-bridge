@@ -1,0 +1,294 @@
+# Factorio Telegram Bridge
+
+A bridge that connects Factorio game servers with Telegram, enabling bidirectional communication between in-game chat and a Telegram group/channel.
+
+## Features
+
+- 💬 **Bidirectional Chat**: Send messages between Factorio and Telegram
+- 🎮 **Game Events**: Get notifications when players join or leave the server
+- 🤖 **RCON Commands**: Execute Factorio commands directly from Telegram using `/` prefix
+- 🔕 **Smart Notifications**: Join/leave events use silent notifications to avoid spam
+- 🐳 **Docker Support**: Easy deployment with Docker
+- 📝 **Real-time Log Monitoring**: Monitors Factorio log file for chat and player events
+
+## Prerequisites
+
+Before you begin, ensure you have the following:
+
+1. **Factorio Server**: A running Factorio server with:
+   - RCON enabled and configured
+   - Access to the server's log file
+   
+2. **Telegram Bot**: Create a bot using [@BotFather](https://t.me/botfather)
+   - Get your bot token
+   - Add the bot to your group/channel
+   - Get the chat ID (you can use [@userinfobot](https://t.me/userinfobot) or similar)
+
+3. **Docker** (for Docker installation) or **Rust toolchain** (for local installation)
+
+## Configuration
+
+The bridge is configured using environment variables or command-line arguments. All configuration options can be set via:
+- Environment variables
+- Command-line arguments (prefixed with `--`)
+- `.env` file in the working directory
+
+### Required Configuration
+
+| Environment Variable | CLI Argument | Description | Example |
+|---------------------|--------------|-------------|---------|
+| `TELEGRAM_TOKEN` | `--telegram-token` | Telegram bot token from BotFather | `123456:ABC-DEF...` |
+| `TELEGRAM_CHAT_ID` | `--telegram-chat-id` | Telegram chat/group ID (numeric) | `-1001234567890` |
+| `RCON_PASSWORD` | `--rcon-password` | Factorio RCON password | `your-secure-password` |
+| `FACTORIO_LOG_FILE` | `--factorio-log-file` | Path to Factorio server log file | `/factorio/factorio-current.log` |
+
+### Optional Configuration
+
+| Environment Variable | CLI Argument | Default | Description |
+|---------------------|--------------|---------|-------------|
+| `RCON_HOST` | `--rcon-host` | `127.0.0.1:27015` | Factorio RCON host and port |
+
+## Installation
+
+### Option 1: Using Docker (Recommended)
+
+#### Using Docker CLI
+
+```bash
+docker run -d \
+  --name factorio-tg-bridge \
+  -e TELEGRAM_TOKEN="your-bot-token" \
+  -e TELEGRAM_CHAT_ID="-1001234567890" \
+  -e RCON_HOST="factorio-server:27015" \
+  -e RCON_PASSWORD="your-rcon-password" \
+  -e FACTORIO_LOG_FILE="/factorio/factorio-current.log" \
+  -v /path/to/factorio/logs:/factorio:ro \
+  ghcr.io/czbix/factorio-telegram-bridge:latest
+```
+
+#### Using Docker Compose
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  factorio-tg-bridge:
+    image: ghcr.io/czbix/factorio-telegram-bridge:latest
+    container_name: factorio-tg-bridge
+    environment:
+      TELEGRAM_TOKEN: "your-bot-token"
+      TELEGRAM_CHAT_ID: "-1001234567890"
+      RCON_HOST: "factorio:27015"
+      RCON_PASSWORD: "your-rcon-password"
+      FACTORIO_LOG_FILE: "/factorio/factorio-current.log"
+    volumes:
+      - /path/to/factorio/logs:/factorio:ro
+    restart: unless-stopped
+    # If running alongside Factorio server in the same compose file:
+    depends_on:
+      - factorio
+    networks:
+      - factorio-network
+
+  # Optional: Your Factorio server configuration
+  # factorio:
+  #   image: factoriotools/factorio:latest
+  #   ports:
+  #     - "34197:34197/udp"
+  #     - "27015:27015/tcp"
+  #   volumes:
+  #     - ./factorio-data:/factorio
+  #   environment:
+  #     - UPDATE_MODS_ON_START=true
+  #   networks:
+  #     - factorio-network
+
+networks:
+  factorio-network:
+    driver: bridge
+```
+
+Then run:
+
+```bash
+docker-compose up -d
+```
+
+### Option 2: Local Installation
+
+#### Prerequisites
+- Rust toolchain (1.83 or later)
+- Cargo package manager
+
+#### Build from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/CzBiX/factorio-telegram-bridge.git
+cd factorio-telegram-bridge
+
+# Build the project
+cargo build --release
+
+# The binary will be at target/release/factorio-tg-bridge
+```
+
+#### Run
+
+Create a `.env` file in the working directory:
+
+```env
+TELEGRAM_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=-1001234567890
+RCON_HOST=127.0.0.1:27015
+RCON_PASSWORD=your-rcon-password
+FACTORIO_LOG_FILE=/path/to/factorio/factorio-current.log
+```
+
+Then run:
+
+```bash
+./target/release/factorio-tg-bridge
+```
+
+Or use command-line arguments:
+
+```bash
+./target/release/factorio-tg-bridge \
+  --telegram-token "your-bot-token" \
+  --telegram-chat-id "-1001234567890" \
+  --rcon-host "127.0.0.1:27015" \
+  --rcon-password "your-rcon-password" \
+  --factorio-log-file "/path/to/factorio/factorio-current.log"
+```
+
+## Usage
+
+Once the bridge is running:
+
+### From Factorio to Telegram
+
+- **Chat messages**: Any player message in Factorio chat will appear in Telegram
+  - Format: `💬Username: message`
+  
+- **Player joins**: When a player joins the server (silent notification)
+  - Format: `😊Username joined`
+  
+- **Player leaves**: When a player leaves the server (silent notification)
+  - Format: `👋Username left`
+
+### From Telegram to Factorio
+
+- **Send messages**: Any text message sent in the Telegram chat will appear in Factorio
+  - Format: `FirstName: message`
+  - Messages appear in the game chat for all players to see
+
+- **Execute commands**: Send messages starting with `/` to execute RCON commands
+  - Example: `/time` - Get current game time
+  - Example: `/players` - List online players
+  - Example: `/c game.print("Hello")` - Execute Lua command
+  - The bot will reply with the command output
+
+- **Share images**: Send photos in Telegram
+  - Format: `FirstName: [IMG]` appears in Factorio chat
+
+### Command Examples
+
+Common Factorio RCON commands you can use from Telegram:
+
+- `/time` - Show current game time
+- `/players` - List connected players
+- `/seed` - Show map seed
+- `/version` - Show server version
+- `/admins` - List server admins
+- `/evolution` - Show evolution factor
+- `/c game.print("message")` - Send server message
+
+## How It Works
+
+The bridge operates in three main components:
+
+1. **Factorio Log Reader**: Monitors the Factorio log file in real-time for:
+   - Chat messages (excluding server messages)
+   - Player join events
+   - Player leave events
+
+2. **Telegram Bot**: Listens for messages in the configured chat:
+   - Text messages are forwarded to Factorio
+   - Messages starting with `/` are executed as RCON commands
+   - Photos are represented as `[IMG]` in Factorio
+
+3. **RCON Client**: Connects to Factorio server to:
+   - Send chat messages from Telegram to the game
+   - Execute commands and return results
+
+All components communicate through an internal event bus for reliable message passing.
+
+## Troubleshooting
+
+### Connection Issues
+
+**Problem**: Bridge can't connect to RCON
+- Verify RCON is enabled in Factorio's `server-settings.json`
+- Check the RCON password is correct
+- Ensure the RCON port (default 27015) is accessible
+- If using Docker, verify the network configuration
+
+**Problem**: Log file not found
+- Ensure the Factorio log file path is correct
+- When using Docker, verify the volume mount is correct
+- Check file permissions (the bridge needs read access)
+
+### Telegram Issues
+
+**Problem**: Bot doesn't respond
+- Verify the bot token is correct
+- Ensure the bot is added to the correct group/channel
+- Check that the chat ID is correct (should be negative for groups)
+- Make sure the bot has permission to read and send messages
+
+**Problem**: Messages not appearing in Telegram
+- Check the bridge logs for errors
+- Verify network connectivity
+- Ensure the bot token is valid and not revoked
+
+### Performance Issues
+
+**Problem**: High CPU usage
+- This is a lightweight application; check for other issues
+- Verify the log file is being properly rotated by Factorio
+
+### Getting Help
+
+Check the logs:
+```bash
+# Docker
+docker logs factorio-tg-bridge
+
+# Local
+# Logs are printed to stdout
+```
+
+Enable verbose logging by setting the `RUST_LOG` environment variable:
+```bash
+RUST_LOG=debug factorio-tg-bridge
+# or in Docker:
+-e RUST_LOG=debug
+```
+
+## License
+
+This project is open source. Please check the repository for license details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Credits
+
+Built with:
+- [teloxide](https://github.com/teloxide/teloxide) - Telegram bot framework
+- [rcon-rs](https://github.com/panicbit/rcon-rs) - RCON client library
+- [linemux](https://github.com/jmagnuson/linemux) - Asynchronous log file monitoring
