@@ -11,7 +11,9 @@ A bridge that connects Factorio game servers with Telegram, enabling bidirection
 - 🐳 **Docker Support**: Easy deployment with Docker
 
 > [!WARNING]
-> Enabling Telegram command execution lets anyone in the chat send RCON commands to your server. Use only in trusted groups.
+> Telegram command execution is Disabled by default for security.
+> 
+> Enabling it lets anyone in the chat send RCON commands to your server. Use only in trusted groups.
 
 ## Configuration
 
