@@ -11,16 +11,23 @@ pub struct TgBot {
     chat_id: i64,
     bot: teloxide::Bot,
     sender: mpsc::Sender<Event>,
+    commands_enabled: bool,
 }
 
 impl TgBot {
-    pub fn new(token: String, chat_id: i64, sender: mpsc::Sender<Event>) -> Self {
+    pub fn new(
+        token: String,
+        chat_id: i64,
+        commands_enabled: bool,
+        sender: mpsc::Sender<Event>,
+    ) -> Self {
         let bot = teloxide::Bot::new(token);
 
         Self {
             chat_id,
             bot,
             sender,
+            commands_enabled,
         }
     }
 
@@ -31,17 +38,22 @@ impl TgBot {
 
         let chat_id = self.chat_id;
         let sender = self.sender.clone();
+        let commands_enabled = self.commands_enabled;
 
         let handler = Update::filter_message()
             .filter(move |msg: Message| msg.chat.id.0 == chat_id)
             .branch(Message::filter_text().endpoint(
-                |sender: mpsc::Sender<Event>, msg: Message| async move {
+                move |sender: mpsc::Sender<Event>, msg: Message| async move {
                     let text = msg.text().unwrap();
                     let name = &msg.from.as_ref().unwrap().first_name;
                     let event = if text.starts_with('/') {
-                        Event::CommandFromTg {
-                            id: msg.id.0,
-                            cmd: text.to_string(),
+                        if commands_enabled {
+                            Event::CommandFromTg {
+                                msg_id: msg.id.0,
+                                cmd: text.to_string(),
+                            }
+                        } else {
+                            Event::CommandBlocked { msg_id: msg.id.0 }
                         }
                     } else {
                         Event::MessageFromTg(format!("{}: {}", name, text.to_string()))

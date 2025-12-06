@@ -9,12 +9,10 @@ use tracing::{info, warn};
 
 #[derive(Debug)]
 enum Event {
-    MessageFromFactorio{
-      msg: String,
-      slient: bool,
-    },
+    MessageFromFactorio { msg: String, slient: bool },
     MessageFromTg(String),
-    CommandFromTg { id: i32, cmd: String },
+    CommandFromTg { msg_id: i32, cmd: String },
+    CommandBlocked { msg_id: i32 },
 }
 
 async fn bus(factorio: &factorio::Factorio, tg: &tg::TgBot, mut rx: mpsc::Receiver<Event>) {
@@ -32,7 +30,7 @@ async fn bus(factorio: &factorio::Factorio, tg: &tg::TgBot, mut rx: mpsc::Receiv
                     warn!("Failed to send command to Factorio: {}", err);
                 }
             }
-            Event::CommandFromTg { id, cmd } => match factorio.send_cmd(&cmd).await {
+            Event::CommandFromTg { msg_id: id, cmd } => match factorio.send_cmd(&cmd).await {
                 Ok(reply) => {
                     if let Err(err) = tg.reply_message(id, &reply).await {
                         warn!("Failed to send reply to Telegram: {}", err);
@@ -42,6 +40,11 @@ async fn bus(factorio: &factorio::Factorio, tg: &tg::TgBot, mut rx: mpsc::Receiv
                     warn!("Failed to send command to Factorio: {}", err);
                 }
             },
+            Event::CommandBlocked { msg_id: id } => {
+                if let Err(err) = tg.reply_message(id, "Commands are disabled.").await {
+                    warn!("Failed to send reply to Telegram: {}", err);
+                }
+            }
         }
     }
 }
@@ -63,6 +66,7 @@ async fn main() -> Result<()> {
     let tg = tg::TgBot::new(
         CONFIG.telegram_token.clone(),
         CONFIG.telegram_chat_id,
+        CONFIG.enable_telegram_commands,
         tx.clone(),
     );
 

@@ -9,6 +9,8 @@ pub struct Config {
     pub telegram_token: String,
     #[arg(long, env)]
     pub telegram_chat_id: i64,
+    #[arg(long, env)]
+    pub enable_telegram_commands: bool,
 
     #[arg(long, env, default_value = "127.0.0.1:27015")]
     pub rcon_host: String,
