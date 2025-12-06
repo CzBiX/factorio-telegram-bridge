@@ -38,7 +38,7 @@ If you are using `factoriotools/factorio`, check out the rcon password in the `r
 | Environment Variable | CLI Argument | Default | Description |
 |---------------------|--------------|---------|-------------|
 | `RCON_HOST` | `--rcon-host` | `127.0.0.1:27015` | Factorio RCON host and port |
-| `ENABLE_TELEGRAM_COMMANDS` | `--enable-telegram-commands` | `false` | Enables executing RCON commands from Telegram |
+| `ENABLE_TELEGRAM_COMMANDS` | `--enable-telegram-commands` || Enables executing RCON commands from Telegram |
 
 ## Installation
 
